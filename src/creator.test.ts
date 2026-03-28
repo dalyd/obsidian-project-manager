@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { App, TFile, TFolder } from 'obsidian';
-import { checkProjectName, createProject, createSubproject, ensureTemplate, DEFAULT_TEMPLATE } from './creator';
+import { checkProjectName, createProject, createSubproject, ensureTemplate, initializeVault, DEFAULT_TEMPLATE } from './creator';
 import { DEFAULT_TEMPLATE_PATH } from './types';
 import { makeTFile, makeTFolder } from './test-helpers';
 
@@ -18,6 +18,61 @@ function mockTemplaterPlugin(app: App, createdFile?: TFile) {
   (app as any).plugins = { plugins: { 'templater-obsidian': mock } };
   return mock;
 }
+
+// ---------------------------------------------------------------------------
+// initializeVault
+// ---------------------------------------------------------------------------
+describe('initializeVault', () => {
+  let app: App;
+  const templatePath = DEFAULT_TEMPLATE_PATH;
+
+  beforeEach(() => {
+    app = new App();
+    vi.spyOn(app.vault, 'getAbstractFileByPath').mockReturnValue(null);
+    vi.spyOn(app.vault, 'createFolder').mockResolvedValue(undefined as unknown as never);
+    vi.spyOn(app.vault, 'create').mockImplementation(async (path) => makeTFile(path));
+  });
+
+  it('creates Projects/Active, Projects/Archive, and template when nothing exists', async () => {
+    await initializeVault(app, templatePath);
+
+    expect(app.vault.createFolder).toHaveBeenCalledWith('Projects');
+    expect(app.vault.createFolder).toHaveBeenCalledWith('Projects/Active');
+    expect(app.vault.createFolder).toHaveBeenCalledWith('Projects/Archive');
+    expect(app.vault.createFolder).toHaveBeenCalledWith('Templates');
+    expect(app.vault.create).toHaveBeenCalledWith(templatePath, DEFAULT_TEMPLATE);
+  });
+
+  it('skips folders and template that already exist', async () => {
+    vi.spyOn(app.vault, 'getAbstractFileByPath').mockImplementation((path) => {
+      if (path === 'Projects/Active') return makeTFolder('Projects/Active');
+      if (path === 'Projects/Archive') return makeTFolder('Projects/Archive');
+      if (path === templatePath) return makeTFile(templatePath);
+      return null;
+    });
+
+    await initializeVault(app, templatePath);
+
+    expect(app.vault.createFolder).not.toHaveBeenCalled();
+    expect(app.vault.create).not.toHaveBeenCalled();
+  });
+
+  it('creates only what is missing', async () => {
+    vi.spyOn(app.vault, 'getAbstractFileByPath').mockImplementation((path) => {
+      if (path === 'Projects') return makeTFolder('Projects');
+      if (path === 'Projects/Active') return makeTFolder('Projects/Active');
+      if (path === 'Templates') return makeTFolder('Templates');
+      return null;
+    });
+
+    await initializeVault(app, templatePath);
+
+    expect(app.vault.createFolder).toHaveBeenCalledWith('Projects/Archive');
+    expect(app.vault.create).toHaveBeenCalledWith(templatePath, DEFAULT_TEMPLATE);
+    expect(app.vault.createFolder).not.toHaveBeenCalledWith('Projects');
+    expect(app.vault.createFolder).not.toHaveBeenCalledWith('Projects/Active');
+  });
+});
 
 // ---------------------------------------------------------------------------
 // checkProjectName
@@ -78,6 +133,7 @@ describe('createProject', () => {
     app = new App();
     const templateFile = makeTFile(DEFAULT_TEMPLATE_PATH);
     vi.spyOn(app.vault, 'getAbstractFileByPath').mockImplementation((path) => {
+      if (path === 'Projects/Active') return makeTFolder('Projects/Active');
       if (path === DEFAULT_TEMPLATE_PATH) return templateFile;
       return null;
     });
@@ -102,6 +158,7 @@ describe('createProject', () => {
     const projectFolder = makeTFolder('Projects/Active/Test Project');
     let folderCreated = false;
     vi.spyOn(app.vault, 'getAbstractFileByPath').mockImplementation((path) => {
+      if (path === 'Projects/Active') return makeTFolder('Projects/Active');
       if (path === DEFAULT_TEMPLATE_PATH) return makeTFile(DEFAULT_TEMPLATE_PATH);
       if (path === 'Projects/Active/Test Project') return folderCreated ? projectFolder : null;
       return null;
@@ -124,10 +181,18 @@ describe('createProject', () => {
 
   it('does not create when folder already exists', async () => {
     vi.spyOn(app.vault, 'getAbstractFileByPath').mockImplementation((path) => {
+      if (path === 'Projects/Active') return makeTFolder('Projects/Active');
       if (path === 'Projects/Active/Test Project')
         return makeTFolder('Projects/Active/Test Project');
       return null;
     });
+
+    await createProject(app, settings, 'Test Project');
+    expect(app.vault.createFolder).not.toHaveBeenCalled();
+  });
+
+  it('shows notice when vault is not initialized', async () => {
+    vi.spyOn(app.vault, 'getAbstractFileByPath').mockReturnValue(null);
 
     await createProject(app, settings, 'Test Project');
     expect(app.vault.createFolder).not.toHaveBeenCalled();
@@ -141,7 +206,10 @@ describe('createProject', () => {
   });
 
   it('shows notice when template file is missing', async () => {
-    vi.spyOn(app.vault, 'getAbstractFileByPath').mockReturnValue(null);
+    vi.spyOn(app.vault, 'getAbstractFileByPath').mockImplementation((path) => {
+      if (path === 'Projects/Active') return makeTFolder('Projects/Active');
+      return null;
+    });
 
     await createProject(app, settings, 'Test Project');
     expect(app.vault.createFolder).not.toHaveBeenCalled();
@@ -160,6 +228,7 @@ describe('createSubproject', () => {
     app = new App();
     const templateFile = makeTFile(DEFAULT_TEMPLATE_PATH);
     vi.spyOn(app.vault, 'getAbstractFileByPath').mockImplementation((path) => {
+      if (path === 'Projects/Active') return makeTFolder('Projects/Active');
       if (path === DEFAULT_TEMPLATE_PATH) return templateFile;
       return null;
     });
@@ -186,6 +255,7 @@ describe('createSubproject', () => {
     const subFolder = makeTFolder('Projects/Active/Marathon Training/Strength Program');
     let folderCreated = false;
     vi.spyOn(app.vault, 'getAbstractFileByPath').mockImplementation((path) => {
+      if (path === 'Projects/Active') return makeTFolder('Projects/Active');
       if (path === DEFAULT_TEMPLATE_PATH) return makeTFile(DEFAULT_TEMPLATE_PATH);
       if (path === 'Projects/Active/Marathon Training/Strength Program')
         return folderCreated ? subFolder : null;

@@ -5,7 +5,7 @@ import { StatusWatcher } from './statusWatcher';
 import { promoteToSubfolder } from './promoter';
 import { StandaloneProjectsModal } from './standaloneModal';
 import { computePromoteTarget, isDepth2UnderActive, isDepth3UnderActive } from './utils';
-import { checkProjectName, createProject, createSubproject, ensureTemplate, getTemplater } from './creator';
+import { checkProjectName, createProject, createSubproject, ensureTemplate, getTemplater, initializeVault } from './creator';
 import { NameInputModal } from './nameInputModal';
 import { ParentPickerModal } from './parentPickerModal';
 import { attachAsSubproject, breakOutSubproject } from './subproject';
@@ -28,6 +28,13 @@ export default class ProjectManagerPlugin extends Plugin {
       }
     });
     this.addSettingTab(new ProjectManagerSettingTab(this.app, this));
+
+    this.addCommand({
+      id: 'initialize-vault',
+      name: 'Initialize project vault',
+      callback: () =>
+        void initializeVault(this.app, this.settings.templatePath),
+    });
 
     this.addCommand({
       id: 'promote-active-file',

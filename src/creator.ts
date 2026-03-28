@@ -5,6 +5,44 @@ import DEFAULT_TEMPLATE from './default-template.md';
 
 export { DEFAULT_TEMPLATE };
 
+export async function initializeVault(app: App, templatePath: string): Promise<void> {
+  const created: string[] = [];
+
+  if (!app.vault.getAbstractFileByPath(ACTIVE_ROOT)) {
+    // Create Projects/ and Projects/Active/ in one go
+    const projectsRoot = ACTIVE_ROOT.split('/')[0];
+    if (!app.vault.getAbstractFileByPath(projectsRoot)) {
+      await app.vault.createFolder(projectsRoot);
+    }
+    await app.vault.createFolder(ACTIVE_ROOT);
+    created.push(ACTIVE_ROOT);
+  }
+
+  if (!app.vault.getAbstractFileByPath(ARCHIVE_ROOT)) {
+    await app.vault.createFolder(ARCHIVE_ROOT);
+    created.push(ARCHIVE_ROOT);
+  }
+
+  const templateExists = app.vault.getAbstractFileByPath(templatePath) instanceof TFile;
+  if (!templateExists) {
+    const parts = templatePath.split('/');
+    for (let i = 1; i < parts.length; i++) {
+      const folder = parts.slice(0, i).join('/');
+      if (!app.vault.getAbstractFileByPath(folder)) {
+        await app.vault.createFolder(folder);
+      }
+    }
+    await app.vault.create(templatePath, DEFAULT_TEMPLATE);
+    created.push(templatePath);
+  }
+
+  if (created.length === 0) {
+    new Notice('Project Manager: vault is already set up. Nothing to do.');
+  } else {
+    new Notice(`Project Manager: created ${created.join(', ')}`);
+  }
+}
+
 export function checkProjectName(app: App, name: string): NameWarning {
   if (app.vault.getAbstractFileByPath(`${ACTIVE_ROOT}/${name}`)) {
     return `A project named "${name}" already exists in Active.`;
@@ -53,11 +91,21 @@ export async function ensureTemplate(app: App, templatePath: string): Promise<vo
   await app.workspace.openLinkText(templatePath, '');
 }
 
+function checkVaultInitialized(app: App): boolean {
+  if (!app.vault.getAbstractFileByPath(ACTIVE_ROOT)) {
+    new Notice('Project folders not found. Run "Initialize project vault" first.');
+    return false;
+  }
+  return true;
+}
+
 export async function createProject(
   app: App,
   settings: PluginSettings,
   name: string
 ): Promise<void> {
+  if (!checkVaultInitialized(app)) return;
+
   const folderPath = `${ACTIVE_ROOT}/${name}`;
 
   if (app.vault.getAbstractFileByPath(folderPath)) {
@@ -74,7 +122,7 @@ export async function createProject(
   const templatePath = settings.templatePath ?? DEFAULT_TEMPLATE_PATH;
   const templateFile = getTemplateFile(app, templatePath);
   if (!templateFile) {
-    new Notice(`Template not found at "${templatePath}". Run "Edit project template" to create it.`);
+    new Notice(`Template not found at "${templatePath}". Run "Initialize project vault" to set up.`);
     return;
   }
 
@@ -95,6 +143,8 @@ export async function createSubproject(
   name: string,
   parentFile: TFile
 ): Promise<void> {
+  if (!checkVaultInitialized(app)) return;
+
   const parentFolderPath = parentFile.path.split('/').slice(0, -1).join('/');
   const folderPath = `${parentFolderPath}/${name}`;
 
@@ -112,7 +162,7 @@ export async function createSubproject(
   const templatePath = settings.templatePath ?? DEFAULT_TEMPLATE_PATH;
   const templateFile = getTemplateFile(app, templatePath);
   if (!templateFile) {
-    new Notice(`Template not found at "${templatePath}". Run "Edit project template" to create it.`);
+    new Notice(`Template not found at "${templatePath}". Run "Initialize project vault" to set up.`);
     return;
   }
 

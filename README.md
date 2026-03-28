@@ -34,9 +34,9 @@ to `Projects/Archive/` when their status changes.
    recommended — the default template includes Dataview queries for inbox,
    subprojects, and logs.
 2. Install and enable Project Manager
-3. Run the command **Project Manager: Edit project template** — this
-   creates the default template file at
-   `Templates/Project Manager Template.md` and opens it for review
+3. Run **Project Manager: Initialize project vault** — this creates the
+   `Projects/Active/` and `Projects/Archive/` folders and the default
+   template file
 4. Run **Project Manager: New project** to create your first project
 
 That's it for basic use. If you also want to create projects from
@@ -65,6 +65,7 @@ Projects/
 
 | Command | Description |
 |---------|-------------|
+| **Initialize project vault** | Create project folders and template file |
 | **New project** | Create a new project folder and index file |
 | **New subproject** | Create a subproject under the current project |
 | **Attach as subproject of...** | Move a top-level project into another as a subproject |
