@@ -49,12 +49,6 @@ Additional views to consider once `project type` is implemented:
   modifications
 - **Project timeline** — sorted by created/completion date
 
-## GitHub Actions release workflow
-
-Add a GitHub Actions workflow that automatically builds and
-publishes release artifacts (`main.js`, `manifest.json`) when a
-version tag is pushed.
-
 ## Deploy convenience script
 
 Add an optional `npm run deploy` script that copies build
