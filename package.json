@@ -1,6 +1,6 @@
 {
 	"name": "obsidian-project-manager",
-	"version": "1.0.0",
+	"version": "0.1.0",
 	"description": "Obsidian plugin for managing projects with folder-based organization, automatic archiving, and subproject support.",
 	"main": "main.js",
 	"repository": {
