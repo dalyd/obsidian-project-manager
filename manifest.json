@@ -1,0 +1,10 @@
+{
+	"id": "project-manager",
+	"name": "Project Manager",
+	"version": "1.0.0",
+	"minAppVersion": "0.15.0",
+	"description": "Manage projects with folder-based organization, automatic archiving on status changes, subproject support, and customizable templates.",
+	"author": "David Daly",
+	"authorUrl": "https://github.com/dalyd",
+	"isDesktopOnly": true
+}
