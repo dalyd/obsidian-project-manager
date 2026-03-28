@@ -1,5 +1,24 @@
 # Worklog
 
+## 2026-03-28
+
+### Changed
+- **`creator.ts`**: Added `initializeVault()` — idempotent command that creates `Projects/Active/`, `Projects/Archive/`, and template file. Added `checkVaultInitialized()` guard to `createProject` and `createSubproject` that shows notice if vault isn't set up. Updated error messages to reference "Initialize project vault" command.
+- **`main.ts`**: Added `initialize-vault` command registration, imported `initializeVault`.
+- **`creator.test.ts`**: Added `initializeVault` test suite (3 tests: creates all, skips existing, creates only missing). Added "vault not initialized" test for `createProject`. Fixed all `getAbstractFileByPath` mock overrides to include `Projects/Active` so `checkVaultInitialized` passes.
+- **`README.md`**: Updated Quick Start step 3 to reference Initialize command. Added Initialize to commands table.
+- **`default-template.md`**: Extracted template from string literal to standalone .md file for readability. Added conditional Bases support block (`tp.file.folder(true) === "Projects/Active"` triggers name prompt and file move).
+- **`nameInputModal.ts`**: Added optional `validate` callback and inline warning display for archive collision detection.
+- **`archiver.ts`**: Added destination collision check before `vault.rename()`.
+- **`test-helpers.ts`**: New file with `makeTFile`/`makeTFolder` helpers using `as any` casts to avoid LSP warnings from mock constructors.
+
+### Decisions
+- `checkVaultInitialized` only checks for `Projects/Active` folder, not the template — template is checked separately in create functions with its own error message. Keeps concerns separated.
+- Template extracted to `.md` file imported via esbuild text loader (`{ ".md": "text" }`) rather than inline string — easier to read and edit.
+
+### Open threads
+- Community plugin submission (PR to obsidian-releases repo)
+
 ## 2026-03-27
 
 ### Investigated
