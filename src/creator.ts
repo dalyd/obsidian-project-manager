@@ -1,4 +1,4 @@
-import { App, Notice, TFile, TFolder } from 'obsidian';
+import { App, Modal, Notice, TFile, TFolder } from 'obsidian';
 import { ACTIVE_ROOT, ARCHIVE_ROOT, DEFAULT_TEMPLATE_PATH, PluginSettings } from './types';
 import { NameWarning } from './nameInputModal';
 import DEFAULT_TEMPLATE from './default-template.md';
@@ -182,4 +182,120 @@ export async function createSubproject(
       fm['type'] = 'subproject';
     });
   }
+}
+
+/** Returns true if `filePath` is a markdown file directly in Projects/Active (not a subfolder). */
+function isDirectlyInActive(filePath: string): boolean {
+  if (!filePath.startsWith(ACTIVE_ROOT + '/')) return false;
+  const relative = filePath.slice(ACTIVE_ROOT.length + 1);
+  return !relative.includes('/') && relative.endsWith('.md');
+}
+
+class ConvertToProjectModal extends Modal {
+  private defaultName: string;
+  private onConfirm: (name: string) => void;
+  private validate: (name: string) => NameWarning;
+
+  constructor(
+    app: App,
+    defaultName: string,
+    onConfirm: (name: string) => void,
+    validate: (name: string) => NameWarning
+  ) {
+    super(app);
+    this.defaultName = defaultName;
+    this.onConfirm = onConfirm;
+    this.validate = validate;
+  }
+
+  onOpen(): void {
+    this.setTitle('Convert to project?');
+    const { contentEl } = this;
+    contentEl.empty();
+
+    contentEl.createEl('p', {
+      text: 'A new file was created in Projects/Active. Enter a name to convert it to a project, or skip to leave it as-is.',
+    });
+
+    const input = contentEl.createEl('input', { type: 'text' }) as HTMLInputElement;
+    input.placeholder = 'Project name…';
+    input.value = this.defaultName;
+    input.style.width = '100%';
+
+    const warningEl = contentEl.createEl('div');
+    warningEl.style.color = 'var(--text-warning)';
+    warningEl.style.fontSize = '0.85em';
+    warningEl.style.marginTop = '4px';
+    warningEl.style.display = 'none';
+
+    const updateWarning = () => {
+      const name = input.value.trim();
+      if (!name) { warningEl.style.display = 'none'; return; }
+      const warning = this.validate(name);
+      if (warning) {
+        warningEl.textContent = warning;
+        warningEl.style.display = 'block';
+      } else {
+        warningEl.style.display = 'none';
+      }
+    };
+
+    input.addEventListener('input', updateWarning);
+
+    const submit = () => {
+      const name = input.value.trim();
+      if (!name) return;
+      this.close();
+      this.onConfirm(name);
+    };
+
+    input.addEventListener('keydown', (evt: KeyboardEvent) => {
+      if (evt.key === 'Enter') {
+        evt.preventDefault();
+        submit();
+      }
+    });
+
+    const btnContainer = contentEl.createDiv();
+    btnContainer.style.display = 'flex';
+    btnContainer.style.gap = '8px';
+    btnContainer.style.marginTop = '8px';
+    btnContainer.style.justifyContent = 'flex-end';
+
+    const skipBtn = btnContainer.createEl('button', { text: 'Skip' });
+    skipBtn.addEventListener('click', () => this.close());
+
+    const createBtn = btnContainer.createEl('button', { text: 'Create project' });
+    createBtn.addEventListener('click', submit);
+
+    setTimeout(() => { input.focus(); input.select(); }, 0);
+  }
+
+  onClose(): void {
+    this.contentEl.empty();
+  }
+}
+
+/**
+ * Handle a file created directly in Projects/Active — prompt the user to
+ * convert it to a project. Called from a vault 'create' event listener.
+ */
+export async function handleFileCreatedInActive(
+  app: App,
+  settings: PluginSettings,
+  file: TFile
+): Promise<void> {
+  if (!isDirectlyInActive(file.path)) return;
+
+  new ConvertToProjectModal(
+    app,
+    file.basename,
+    (name) => {
+      void (async () => {
+        await app.vault.delete(file);
+        await createProject(app, settings, name);
+      })();
+    },
+    (name) => checkProjectName(app, name)
+  ).open();
 }

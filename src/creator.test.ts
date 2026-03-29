@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { App, TFile, TFolder } from 'obsidian';
-import { checkProjectName, createProject, createSubproject, ensureTemplate, initializeVault, DEFAULT_TEMPLATE } from './creator';
+import { App, Modal, TFile, TFolder } from 'obsidian';
+import { checkProjectName, createProject, createSubproject, ensureTemplate, handleFileCreatedInActive, initializeVault, DEFAULT_TEMPLATE } from './creator';
 import { DEFAULT_TEMPLATE_PATH } from './types';
 import { makeTFile, makeTFolder } from './test-helpers';
 
@@ -377,5 +377,46 @@ describe('ensureTemplate', () => {
 
     expect(app.vault.createFolder).not.toHaveBeenCalled();
     expect(app.vault.create).toHaveBeenCalledWith(templatePath, DEFAULT_TEMPLATE);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// handleFileCreatedInActive
+// ---------------------------------------------------------------------------
+describe('handleFileCreatedInActive', () => {
+  let app: App;
+  const settings = { enabled: true, templatePath: DEFAULT_TEMPLATE_PATH };
+
+  beforeEach(() => {
+    app = new App();
+  });
+
+  it('does nothing for files in subfolders of Projects/Active', async () => {
+    const file = makeTFile('Projects/Active/My Project/notes.md');
+    const deleteSpy = vi.spyOn(app.vault, 'delete').mockResolvedValue();
+    await handleFileCreatedInActive(app, settings, file);
+    expect(deleteSpy).not.toHaveBeenCalled();
+  });
+
+  it('does nothing for files outside Projects/Active', async () => {
+    const file = makeTFile('Notes/some-note.md');
+    const deleteSpy = vi.spyOn(app.vault, 'delete').mockResolvedValue();
+    await handleFileCreatedInActive(app, settings, file);
+    expect(deleteSpy).not.toHaveBeenCalled();
+  });
+
+  it('does nothing for non-markdown files in Projects/Active', async () => {
+    const file = makeTFile('Projects/Active/data.json');
+    const deleteSpy = vi.spyOn(app.vault, 'delete').mockResolvedValue();
+    await handleFileCreatedInActive(app, settings, file);
+    expect(deleteSpy).not.toHaveBeenCalled();
+  });
+
+  it('opens a modal for markdown files directly in Projects/Active', async () => {
+    const openSpy = vi.spyOn(Modal.prototype, 'open');
+    const file = makeTFile('Projects/Active/Untitled.md');
+    await handleFileCreatedInActive(app, settings, file);
+    expect(openSpy).toHaveBeenCalled();
+    openSpy.mockRestore();
   });
 });

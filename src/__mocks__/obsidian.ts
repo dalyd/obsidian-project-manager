@@ -121,6 +121,7 @@ export class App {
     createFolder: async (_path: string): Promise<void> => {},
     create: async (_path: string, _content: string): Promise<TFile> => new TFile(_path),
     read: async (_file: TFile): Promise<string> => '',
+    delete: async (_file: TFile | TFolder, _force?: boolean): Promise<void> => {},
     rename: async (_file: TFile | TFolder, _newPath: string): Promise<void> => {},
     on: (_event: string, _cb: (...args: unknown[]) => unknown) => ({}),
     adapter: {

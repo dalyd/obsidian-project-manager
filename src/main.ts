@@ -1,11 +1,11 @@
-import { Notice, Plugin } from 'obsidian';
+import { Notice, Plugin, TFile } from 'obsidian';
 import { PluginSettings, PROJECT_TYPE, SUBPROJECT_TYPE } from './types';
 import { DEFAULT_SETTINGS, ProjectManagerSettingTab } from './settings';
 import { StatusWatcher } from './statusWatcher';
 import { promoteToSubfolder } from './promoter';
 import { StandaloneProjectsModal } from './standaloneModal';
 import { computePromoteTarget, isDepth2UnderActive, isDepth3UnderActive } from './utils';
-import { checkProjectName, createProject, createSubproject, ensureTemplate, getTemplater, initializeVault } from './creator';
+import { checkProjectName, createProject, createSubproject, ensureTemplate, getTemplater, handleFileCreatedInActive, initializeVault } from './creator';
 import { NameInputModal } from './nameInputModal';
 import { ParentPickerModal } from './parentPickerModal';
 import { attachAsSubproject, breakOutSubproject } from './subproject';
@@ -18,6 +18,14 @@ export default class ProjectManagerPlugin extends Plugin {
     await this.loadSettings();
     this.watcher = new StatusWatcher(this.app, this, this.settings);
     this.watcher.register();
+    this.registerEvent(
+      this.app.vault.on('create', (file) => {
+        if (file instanceof TFile) {
+          void handleFileCreatedInActive(this.app, this.settings, file);
+        }
+      })
+    );
+
     this.app.workspace.onLayoutReady(() => {
       this.watcher.initSnapshot();
       if (!getTemplater(this.app)) {

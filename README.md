@@ -114,24 +114,11 @@ Common Templater expressions in the default template:
 
 ### Using with Bases or manual file creation
 
-When creating project files outside the plugin (e.g. from an Obsidian Bases
-view or by creating a new file manually), you need to configure Templater to
-automatically apply the project template:
-
-1. Open **Settings > Templater**
-2. Enable **Trigger Templater on new file creation**
-3. Enable **Folder Templates** and add a mapping:
-   - **Folder**: `Projects/Active`
-   - **Template**: `Templates/Project Manager Template.md`
-
-With this configured, any new file created inside `Projects/Active/` will
-automatically have the project template applied. The template defaults to
-`type: project` — change it to `subproject` manually if needed.
-
-> **Note:** Bases and QuickAdd may create files in a different folder than
-> `Projects/Active/` depending on their configuration. Make sure your
-> creation path places files under `Projects/Active/` for the folder
-> template to apply, or add additional folder template mappings as needed.
+When a new file is created directly in `Projects/Active/` (e.g. from an
+Obsidian Bases view or by manually creating a file), the plugin detects it
+and asks whether to convert it into a project. If you confirm, the plugin
+deletes the empty file and creates a proper project folder with the
+template applied.
 
 ## Settings
 

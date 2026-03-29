@@ -1,5 +1,23 @@
 # Worklog
 
+## 2026-03-29
+
+### Investigated
+- Templater folder templates apply recursively to subfolders — creating a file like `Projects/Active/MyProject/SupportingFile.md` would get the project template applied, which is wrong
+- Considered guarding the template with `tp.file.folder(true)` checks vs handling detection in the plugin itself
+
+### Changed
+- **`creator.ts`**: Added `ConvertToProjectModal` and `handleFileCreatedInActive()` — plugin watches for `.md` files created directly in `Projects/Active/` (not subfolders) and prompts the user with a name input (pre-filled with file basename), archive collision warnings, and a Skip button. On confirm, deletes the empty file and creates a proper project.
+- **`main.ts`**: Registered vault `create` event listener that calls `handleFileCreatedInActive`.
+- **`default-template.md`**: Removed conditional Templater block (`tp.file.folder`, `tp.system.prompt`, `tp.file.rename`, `tp.file.move`). Template is now straightforward Templater syntax with no Bases-specific handling.
+- **`README.md`**: Replaced Templater folder template setup instructions with description of automatic plugin detection.
+- **`creator.test.ts`**: Added `handleFileCreatedInActive` tests (4 tests: subfolder ignored, outside ignored, non-markdown ignored, modal opens for direct file).
+- **`__mocks__/obsidian.ts`**: Added `delete` method to mock vault.
+
+### Decisions
+- Handle Bases/manual file detection in the plugin rather than via Templater folder templates — folder templates are recursive and can't be scoped to a single directory level
+- `ConvertToProjectModal` is a separate modal from `NameInputModal` — it has different UX (explanatory text, Skip button, pre-filled name) specific to the file detection flow
+
 ## 2026-03-28
 
 ### Changed
