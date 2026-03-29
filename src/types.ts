@@ -17,8 +17,10 @@ export const ARCHIVE_ROOT = 'Projects/Archive';
 export const PROJECT_TYPE = 'project';
 export const SUBPROJECT_TYPE = 'subproject';
 export const DEFAULT_TEMPLATE_PATH = 'Templates/Project Manager Template.md';
+export const PROJECT_TYPE_FIELD = 'project type';
 
 export interface PluginSettings {
   enabled: boolean;
   templatePath: string;
+  projectTypes: string;
 }

@@ -1,6 +1,7 @@
 import { App, Modal, Notice, TFile, TFolder } from 'obsidian';
-import { ACTIVE_ROOT, ARCHIVE_ROOT, DEFAULT_TEMPLATE_PATH, PluginSettings } from './types';
+import { ACTIVE_ROOT, ARCHIVE_ROOT, DEFAULT_TEMPLATE_PATH, PROJECT_TYPE_FIELD, PluginSettings } from './types';
 import { NameWarning } from './nameInputModal';
+import { parseProjectTypes } from './settings';
 import DEFAULT_TEMPLATE from './default-template.md';
 
 export { DEFAULT_TEMPLATE };
@@ -102,7 +103,8 @@ function checkVaultInitialized(app: App): boolean {
 export async function createProject(
   app: App,
   settings: PluginSettings,
-  name: string
+  name: string,
+  projectType?: string
 ): Promise<void> {
   if (!checkVaultInitialized(app)) return;
 
@@ -129,19 +131,26 @@ export async function createProject(
   await app.vault.createFolder(folderPath);
 
   const folder = app.vault.getAbstractFileByPath(folderPath);
-  await templater.templater.create_new_note_from_template(
+  const newFile = await templater.templater.create_new_note_from_template(
     templateFile,
     folder,
     name,
     true
   );
+
+  if (projectType && newFile instanceof TFile) {
+    await app.fileManager.processFrontMatter(newFile, (fm: Record<string, unknown>) => {
+      fm[PROJECT_TYPE_FIELD] = projectType;
+    });
+  }
 }
 
 export async function createSubproject(
   app: App,
   settings: PluginSettings,
   name: string,
-  parentFile: TFile
+  parentFile: TFile,
+  projectType?: string
 ): Promise<void> {
   if (!checkVaultInitialized(app)) return;
 
@@ -176,10 +185,12 @@ export async function createSubproject(
     true
   );
 
-  // Override type from "project" to "subproject" after Templater processing
   if (newFile instanceof TFile) {
     await app.fileManager.processFrontMatter(newFile, (fm: Record<string, unknown>) => {
       fm['type'] = 'subproject';
+      if (projectType) {
+        fm[PROJECT_TYPE_FIELD] = projectType;
+      }
     });
   }
 }
@@ -193,19 +204,22 @@ function isDirectlyInActive(filePath: string): boolean {
 
 class ConvertToProjectModal extends Modal {
   private defaultName: string;
-  private onConfirm: (name: string) => void;
+  private onConfirm: (name: string, projectType?: string) => void;
   private validate: (name: string) => NameWarning;
+  private projectTypes: string[];
 
   constructor(
     app: App,
     defaultName: string,
-    onConfirm: (name: string) => void,
-    validate: (name: string) => NameWarning
+    onConfirm: (name: string, projectType?: string) => void,
+    validate: (name: string) => NameWarning,
+    projectTypes: string[] = []
   ) {
     super(app);
     this.defaultName = defaultName;
     this.onConfirm = onConfirm;
     this.validate = validate;
+    this.projectTypes = projectTypes;
   }
 
   onOpen(): void {
@@ -241,12 +255,27 @@ class ConvertToProjectModal extends Modal {
     };
 
     input.addEventListener('input', updateWarning);
+    updateWarning();
+
+    let typeSelect: HTMLSelectElement | null = null;
+    if (this.projectTypes.length > 0) {
+      typeSelect = contentEl.createEl('select') as HTMLSelectElement;
+      typeSelect.style.width = '100%';
+      typeSelect.style.marginTop = '8px';
+      const emptyOpt = typeSelect.createEl('option', { text: 'No project type', value: '' });
+      emptyOpt.value = '';
+      for (const t of this.projectTypes) {
+        const opt = typeSelect.createEl('option', { text: t, value: t });
+        opt.value = t;
+      }
+    }
 
     const submit = () => {
       const name = input.value.trim();
       if (!name) return;
+      const projectType = typeSelect?.value || undefined;
       this.close();
-      this.onConfirm(name);
+      this.onConfirm(name, projectType);
     };
 
     input.addEventListener('keydown', (evt: KeyboardEvent) => {
@@ -290,12 +319,13 @@ export async function handleFileCreatedInActive(
   new ConvertToProjectModal(
     app,
     file.basename,
-    (name) => {
+    (name, projectType) => {
       void (async () => {
         await app.vault.delete(file);
-        await createProject(app, settings, name);
+        await createProject(app, settings, name, projectType);
       })();
     },
-    (name) => checkProjectName(app, name)
+    (name) => checkProjectName(app, name),
+    parseProjectTypes(settings.projectTypes)
   ).open();
 }

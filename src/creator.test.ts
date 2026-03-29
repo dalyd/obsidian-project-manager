@@ -127,7 +127,7 @@ describe('checkProjectName', () => {
 // ---------------------------------------------------------------------------
 describe('createProject', () => {
   let app: App;
-  const settings = { enabled: true, templatePath: DEFAULT_TEMPLATE_PATH };
+  const settings = { enabled: true, templatePath: DEFAULT_TEMPLATE_PATH, projectTypes: '' };
 
   beforeEach(() => {
     app = new App();
@@ -214,6 +214,32 @@ describe('createProject', () => {
     await createProject(app, settings, 'Test Project');
     expect(app.vault.createFolder).not.toHaveBeenCalled();
   });
+
+  it('sets project type via processFrontMatter when provided', async () => {
+    const createdFile = makeTFile('Projects/Active/Test Project/Test Project.md');
+    mockTemplaterPlugin(app, createdFile);
+    vi.spyOn(app.fileManager, 'processFrontMatter').mockResolvedValue(undefined);
+
+    await createProject(app, settings, 'Test Project', 'research');
+
+    expect(app.fileManager.processFrontMatter).toHaveBeenCalledWith(
+      createdFile,
+      expect.any(Function)
+    );
+    const callback = vi.mocked(app.fileManager.processFrontMatter).mock.calls[0][1];
+    const fm: Record<string, unknown> = {};
+    callback(fm);
+    expect(fm['project type']).toBe('research');
+  });
+
+  it('does not call processFrontMatter when projectType is undefined', async () => {
+    mockTemplaterPlugin(app);
+    vi.spyOn(app.fileManager, 'processFrontMatter').mockResolvedValue(undefined);
+
+    await createProject(app, settings, 'Test Project');
+
+    expect(app.fileManager.processFrontMatter).not.toHaveBeenCalled();
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -221,7 +247,7 @@ describe('createProject', () => {
 // ---------------------------------------------------------------------------
 describe('createSubproject', () => {
   let app: App;
-  const settings = { enabled: true, templatePath: DEFAULT_TEMPLATE_PATH };
+  const settings = { enabled: true, templatePath: DEFAULT_TEMPLATE_PATH, projectTypes: '' };
   const parentFile = makeTFile('Projects/Active/Marathon Training/Marathon Training.md');
 
   beforeEach(() => {
@@ -296,6 +322,36 @@ describe('createSubproject', () => {
     const fm: Record<string, unknown> = { type: 'project' };
     callback(fm);
     expect(fm.type).toBe('subproject');
+  });
+
+  it('sets project type along with subproject type when provided', async () => {
+    const createdFile = makeTFile(
+      'Projects/Active/Marathon Training/Strength Program/Strength Program.md'
+    );
+    mockTemplaterPlugin(app, createdFile);
+
+    await createSubproject(app, settings, 'Strength Program', parentFile, 'personal');
+
+    const callback = (app.fileManager.processFrontMatter as any).mock.calls[0][1];
+    const fm: Record<string, unknown> = { type: 'project' };
+    callback(fm);
+    expect(fm.type).toBe('subproject');
+    expect(fm['project type']).toBe('personal');
+  });
+
+  it('does not set project type when not provided', async () => {
+    const createdFile = makeTFile(
+      'Projects/Active/Marathon Training/Strength Program/Strength Program.md'
+    );
+    mockTemplaterPlugin(app, createdFile);
+
+    await createSubproject(app, settings, 'Strength Program', parentFile);
+
+    const callback = (app.fileManager.processFrontMatter as any).mock.calls[0][1];
+    const fm: Record<string, unknown> = { type: 'project' };
+    callback(fm);
+    expect(fm.type).toBe('subproject');
+    expect(fm['project type']).toBeUndefined();
   });
 
   it('does not create when subfolder already exists', async () => {
@@ -385,7 +441,7 @@ describe('ensureTemplate', () => {
 // ---------------------------------------------------------------------------
 describe('handleFileCreatedInActive', () => {
   let app: App;
-  const settings = { enabled: true, templatePath: DEFAULT_TEMPLATE_PATH };
+  const settings = { enabled: true, templatePath: DEFAULT_TEMPLATE_PATH, projectTypes: '' };
 
   beforeEach(() => {
     app = new App();

@@ -4,19 +4,25 @@ export type NameWarning = string | null;
 
 export class NameInputModal extends Modal {
   private promptTitle: string;
-  private onSubmit: (name: string) => void;
+  private onSubmit: (name: string, projectType?: string) => void;
   private validate?: (name: string) => NameWarning;
+  private projectTypes: string[];
+  private defaultProjectType?: string;
 
   constructor(
     app: App,
     promptTitle: string,
-    onSubmit: (name: string) => void,
-    validate?: (name: string) => NameWarning
+    onSubmit: (name: string, projectType?: string) => void,
+    validate?: (name: string) => NameWarning,
+    projectTypes: string[] = [],
+    defaultProjectType?: string
   ) {
     super(app);
     this.promptTitle = promptTitle;
     this.onSubmit = onSubmit;
     this.validate = validate;
+    this.projectTypes = projectTypes;
+    this.defaultProjectType = defaultProjectType;
   }
 
   onOpen(): void {
@@ -51,11 +57,26 @@ export class NameInputModal extends Modal {
 
     input.addEventListener('input', updateWarning);
 
+    let typeSelect: HTMLSelectElement | null = null;
+    if (this.projectTypes.length > 0) {
+      typeSelect = contentEl.createEl('select') as HTMLSelectElement;
+      typeSelect.style.width = '100%';
+      typeSelect.style.marginTop = '8px';
+      const emptyOpt = typeSelect.createEl('option', { text: 'No project type', value: '' });
+      emptyOpt.value = '';
+      for (const t of this.projectTypes) {
+        const opt = typeSelect.createEl('option', { text: t, value: t });
+        opt.value = t;
+        if (t === this.defaultProjectType) opt.selected = true;
+      }
+    }
+
     const submit = () => {
       const name = input.value.trim();
       if (!name) return;
+      const projectType = typeSelect?.value || undefined;
       this.close();
-      this.onSubmit(name);
+      this.onSubmit(name, projectType);
     };
 
     input.addEventListener('keydown', (evt: KeyboardEvent) => {

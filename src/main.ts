@@ -7,6 +7,7 @@ import { StandaloneProjectsModal } from './standaloneModal';
 import { computePromoteTarget, isDepth2UnderActive, isDepth3UnderActive } from './utils';
 import { checkProjectName, createProject, createSubproject, ensureTemplate, getTemplater, handleFileCreatedInActive, initializeVault } from './creator';
 import { NameInputModal } from './nameInputModal';
+import { parseProjectTypes } from './settings';
 import { ParentPickerModal } from './parentPickerModal';
 import { attachAsSubproject, breakOutSubproject } from './subproject';
 
@@ -79,8 +80,9 @@ export default class ProjectManagerPlugin extends Plugin {
         new NameInputModal(
           this.app,
           'New Project',
-          (name) => void createProject(this.app, this.settings, name),
-          (name) => checkProjectName(this.app, name)
+          (name, projectType) => void createProject(this.app, this.settings, name, projectType),
+          (name) => checkProjectName(this.app, name),
+          parseProjectTypes(this.settings.projectTypes)
         ).open(),
     });
 
@@ -92,10 +94,19 @@ export default class ProjectManagerPlugin extends Plugin {
         if (!file) return false;
         const fm = this.app.metadataCache.getFileCache(file)?.frontmatter;
         if (fm?.['type'] !== PROJECT_TYPE || !isDepth2UnderActive(file.path)) return false;
-        if (!checking)
-          new NameInputModal(this.app, 'New Subproject', (name) =>
-            void createSubproject(this.app, this.settings, name, file)
+        if (!checking) {
+          const parentProjectType = fm?.['project type'] as string | undefined;
+          const types = parseProjectTypes(this.settings.projectTypes);
+          new NameInputModal(
+            this.app,
+            'New Subproject',
+            (name, projectType) =>
+              void createSubproject(this.app, this.settings, name, file, projectType ?? parentProjectType),
+            undefined,
+            types,
+            parentProjectType
           ).open();
+        }
         return true;
       },
     });

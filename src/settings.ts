@@ -4,7 +4,12 @@ import { DEFAULT_TEMPLATE_PATH, PluginSettings } from './types';
 export const DEFAULT_SETTINGS: PluginSettings = {
   enabled: true,
   templatePath: DEFAULT_TEMPLATE_PATH,
+  projectTypes: '',
 };
+
+export function parseProjectTypes(raw: string): string[] {
+  return raw.split(',').map(s => s.trim()).filter(Boolean);
+}
 
 export class ProjectManagerSettingTab extends PluginSettingTab {
   private plugin: { settings: PluginSettings; saveSettings: () => Promise<void> };
@@ -40,6 +45,19 @@ export class ProjectManagerSettingTab extends PluginSettingTab {
           .setValue(this.plugin.settings.templatePath)
           .onChange(async (value) => {
             this.plugin.settings.templatePath = value || DEFAULT_TEMPLATE_PATH;
+            await this.plugin.saveSettings();
+          })
+      );
+
+    new Setting(containerEl)
+      .setName('Project types')
+      .setDesc('Comma-separated list of project types (e.g. "trip, research, hobby"). Leave empty to disable the project type dropdown during creation.')
+      .addText((text) =>
+        text
+          .setPlaceholder('trip, research, hobby')
+          .setValue(this.plugin.settings.projectTypes)
+          .onChange(async (value) => {
+            this.plugin.settings.projectTypes = value;
             await this.plugin.saveSettings();
           })
       );
