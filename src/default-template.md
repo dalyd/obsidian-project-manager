@@ -17,7 +17,7 @@ sort file.ctime desc
 
 # Subprojects
 ```dataview
-LIST WHERE file.folder = this.file.folder AND type = "subproject" AND file.path != this.file.path SORT file.name ASC
+LIST FROM this.file.folder WHERE type = "subproject" AND file.path != this.file.path SORT file.name ASC
 ```
 
 # References
