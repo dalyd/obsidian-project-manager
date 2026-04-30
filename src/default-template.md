@@ -1,6 +1,6 @@
 ---
 type: project
-Status: Not started
+Status: active
 created date: <% tp.date.now("YYYY-MM-DDTHH:mm") %>
 ---
 # Summary
