@@ -1,6 +1,6 @@
 {
 	"name": "obsidian-project-manager",
-	"version": "0.1.0",
+	"version": "0.1.1",
 	"description": "Obsidian plugin for managing projects with folder-based organization, automatic archiving, and subproject support.",
 	"main": "main.js",
 	"repository": {
@@ -14,7 +14,11 @@
 		"test:watch": "vitest",
 		"version": "node version-bump.mjs && git add manifest.json versions.json"
 	},
-	"keywords": ["obsidian", "obsidian-plugin", "project-management"],
+	"keywords": [
+		"obsidian",
+		"obsidian-plugin",
+		"project-management"
+	],
 	"author": "David Daly",
 	"license": "MIT",
 	"devDependencies": {

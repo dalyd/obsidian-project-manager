@@ -1,7 +1,7 @@
 {
 	"id": "project-manager",
 	"name": "Project Manager",
-	"version": "0.1.0",
+	"version": "0.1.1",
 	"minAppVersion": "1.12.7",
 	"description": "Manage projects with folder-based organization, automatic archiving on status changes, subproject support, and customizable templates.",
 	"author": "David Daly",
